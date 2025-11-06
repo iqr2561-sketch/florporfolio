@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import type { UploadedFile, Project } from '../types.ts';
-import { uploadFile, deleteFile } from '../lib/projectsService.ts';
+import { uploadFile, deleteFile, uploadProfileImage } from '../lib/projectsService.ts';
 
 const UploadIcon = ({ className = 'w-12 h-12' }: { className?: string }) => (
     <svg className={className} stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -158,9 +158,62 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
         </div>
     );
     
+    const handleProfileImageUpload = async (file: File | null) => {
+        if (!file) return;
+        
+        if (!file.type.startsWith('image/')) {
+            setError('Por favor, sube solo archivos de imagen');
+            return;
+        }
+
+        setError(null);
+        setUploading(prev => ({ ...prev, 'profile': true }));
+
+        try {
+            await uploadProfileImage(file);
+            if (onRefresh) {
+                await onRefresh();
+            }
+            alert('Imagen de perfil actualizada correctamente. Recarga la página para ver los cambios.');
+        } catch (err) {
+            console.error('Error uploading profile image:', err);
+            setError(`Error al subir la imagen: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+        } finally {
+            setUploading(prev => {
+                const newState = { ...prev };
+                delete newState['profile'];
+                return newState;
+            });
+        }
+    };
+
     return (
         <section id="panel" className="min-h-screen animate-fade-in">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-12 text-center">Gestionar Proyectos</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-12 text-center">Panel de Administración</h2>
+            
+            {/* Sección de Imagen de Perfil */}
+            <div className="max-w-2xl mx-auto bg-white/60 backdrop-blur-sm p-6 rounded-2xl shadow-lg mb-12">
+                <h3 className="text-2xl font-bold text-gray-700 mb-4">Imagen de Perfil (Sección "Sobre Mí")</h3>
+                <div className="mt-4">
+                    <label htmlFor="profile-image-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-[#C49E85] hover:text-[#D08A64] focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-[#D08A64] inline-block px-4 py-2 border border-[#D08A64] rounded-lg">
+                        <span>Subir Imagen de Perfil</span>
+                        <input 
+                            id="profile-image-upload" 
+                            name="profile-image-upload" 
+                            type="file" 
+                            className="sr-only" 
+                            accept="image/*" 
+                            onChange={(e) => handleProfileImageUpload(e.target.files?.[0] || null)} 
+                        />
+                    </label>
+                    <p className="text-sm text-gray-500 mt-2">La imagen aparecerá en la sección "Sobre Mí"</p>
+                    {uploading['profile'] && (
+                        <p className="text-sm text-blue-600 mt-2">Subiendo imagen...</p>
+                    )}
+                </div>
+            </div>
+
+            <h3 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8 text-center">Gestionar Proyectos</h3>
             
             {error && (
                 <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">

@@ -180,6 +180,80 @@ export const uploadFile = async (
   }
 };
 
+// Obtener imagen de perfil
+export const getProfileImage = async (): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('profile_settings')
+      .select('profile_image_url')
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows returned
+    return data?.profile_image_url || null;
+  } catch (error) {
+    console.error('Error fetching profile image:', error);
+    return null;
+  }
+};
+
+// Subir imagen de perfil
+export const uploadProfileImage = async (file: File): Promise<string | null> => {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `profile-${Date.now()}.${fileExt}`;
+    const filePath = `profile/${fileName}`;
+
+    // Eliminar imagen anterior si existe
+    const { data: oldData } = await supabase
+      .from('profile_settings')
+      .select('profile_image_url')
+      .single();
+
+    if (oldData?.profile_image_url) {
+      const oldUrlParts = oldData.profile_image_url.split('/');
+      const bucketIndex = oldUrlParts.findIndex(part => part === 'public');
+      if (bucketIndex !== -1) {
+        const oldFilePath = oldUrlParts.slice(bucketIndex + 1).join('/');
+        await supabase.storage.from(BUCKET_NAME).remove([oldFilePath]);
+      }
+    }
+
+    // Subir nueva imagen
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
+
+    if (uploadError) throw uploadError;
+    if (!uploadData) return null;
+
+    // Obtener URL pública
+    const { data: { publicUrl } } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(filePath);
+
+    // Guardar en la base de datos
+    const { error: dbError } = await supabase
+      .from('profile_settings')
+      .upsert({ 
+        id: 1, 
+        profile_image_url: publicUrl,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'id'
+      });
+
+    if (dbError) throw dbError;
+
+    return publicUrl;
+  } catch (error) {
+    console.error('Error uploading profile image:', error);
+    throw error;
+  }
+};
+
 // Eliminar un archivo
 export const deleteFile = async (fileId: string, filePath?: string): Promise<boolean> => {
   try {
