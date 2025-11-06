@@ -7,38 +7,44 @@ import Contact from './components/Contact.tsx';
 import AdminPanel from './components/AdminPanel.tsx';
 import InteractiveBackground from './components/InteractiveBackground.tsx';
 import type { Section, Project } from './types.ts';
-import { PROJECTS } from './constants.ts';
+import { getProjects } from './lib/projectsService.ts';
 
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState<Section>('inicio');
   const [isAnimating, setIsAnimating] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-        const storedProjects = localStorage.getItem('portfolioProjects');
-        if (storedProjects) {
-            setProjects(JSON.parse(storedProjects));
-        } else {
-            const initialProjects = PROJECTS.map(p => ({ ...p, media: [] }));
-            setProjects(initialProjects);
-        }
-    } catch (error) {
-        console.error("Failed to load projects from localStorage", error);
-        const initialProjects = PROJECTS.map(p => ({ ...p, media: [] }));
-        setProjects(initialProjects);
-    }
+    const loadProjects = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const fetchedProjects = await getProjects();
+        setProjects(fetchedProjects);
+      } catch (err) {
+        console.error("Failed to load projects from Supabase:", err);
+        setError("Error al cargar los proyectos. Por favor, recarga la página.");
+        // Fallback: mantener proyectos vacíos en lugar de mostrar error
+        setProjects([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProjects();
   }, []);
 
-  useEffect(() => {
-    if (projects.length > 0) {
-        try {
-            localStorage.setItem('portfolioProjects', JSON.stringify(projects));
-        } catch (error) {
-            console.error("Failed to save projects to localStorage", error);
-        }
+  // Función para refrescar proyectos desde Supabase
+  const refreshProjects = async () => {
+    try {
+      const fetchedProjects = await getProjects();
+      setProjects(fetchedProjects);
+    } catch (err) {
+      console.error("Failed to refresh projects:", err);
     }
-  }, [projects]);
+  };
 
 
   const handleSectionChange = (section: Section) => {
@@ -63,7 +69,7 @@ const App: React.FC = () => {
       case 'contacto':
         return <Contact />;
       case 'panel':
-        return <AdminPanel projects={projects} setProjects={setProjects} />;
+        return <AdminPanel projects={projects} setProjects={setProjects} onRefresh={refreshProjects} />;
       default:
         return <Home onNavigate={handleSectionChange} projects={projects} />;
     }
