@@ -12,8 +12,8 @@ const Home: React.FC<HomeProps> = ({ onNavigate, projects }) => {
 
     return (
         <section id="inicio" className="min-h-screen animate-fade-in">
-            <div className="text-center mb-16">
-                <h1 className="text-4xl md:text-6xl font-bold text-[#D08A64] mb-4">Florencia Cosmedi</h1>
+            <div className="text-center mb-16 pt-8 md:pt-12">
+                <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-[#D08A64] mb-4 leading-tight">Florencia Cosmedi</h1>
                 <p className="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto">
                     Técnica en Diseño, Imagen y Sonido. Creando experiencias visuales y audiovisuales que conectan, emocionan y comunican con propósito.
                 </p>

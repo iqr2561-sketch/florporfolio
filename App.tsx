@@ -79,7 +79,7 @@ const App: React.FC = () => {
     <div className="relative z-0 flex flex-col min-h-screen">
       <InteractiveBackground />
       <Sidebar activeSection={activeSection} setActiveSection={handleSectionChange} />
-      <main className="flex-1 p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto custom-scrollbar transition-opacity duration-300 ease-in-out pt-24 md:pt-28" style={{ opacity: isAnimating ? 0 : 1 }}>
+      <main className="flex-1 p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto custom-scrollbar transition-opacity duration-300 ease-in-out pt-28 md:pt-32 lg:pt-36" style={{ opacity: isAnimating ? 0 : 1 }}>
         <div>
           {renderSection()}
         </div>
