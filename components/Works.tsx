@@ -12,17 +12,12 @@ interface WorksProps {
 const MarketingCard: React.FC<{ item: MarketingItem }> = ({ item }) => {
     return (
         <div className="bg-white/70 rounded-2xl shadow-lg overflow-hidden group transform transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
-            <div className="relative">
+            <div className="relative aspect-square w-full">
                 <img 
                     src={item.image_url} 
                     alt={item.title}
-                    className="w-full h-56 object-cover transition-transform duration-500 group-hover:scale-110" 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
                 />
-            </div>
-            <div className="p-6">
-                <p className="text-sm font-semibold text-[#C49E85] mb-1">Marketing</p>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">{item.title}</h3>
-                <p className="text-gray-600 text-sm mb-4">{item.description}</p>
             </div>
         </div>
     );
