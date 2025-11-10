@@ -72,16 +72,21 @@ const Works: React.FC<WorksProps> = ({ projects }) => {
             </div>
 
             {/* Sección de Marketing */}
-            {marketingItems.length > 0 && (
-                <div className="mt-20">
-                    <h3 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8 text-center">Marketing</h3>
+            <div className="mt-20">
+                <h3 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8 text-center">Marketing</h3>
+                {marketingItems.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {marketingItems.map(item => (
                             <MarketingCard key={item.id} item={item} />
                         ))}
                     </div>
-                </div>
-            )}
+                ) : (
+                    <div className="text-center py-12 bg-white/50 rounded-2xl">
+                        <p className="text-gray-600 mb-4">No hay imágenes de marketing aún.</p>
+                        <p className="text-sm text-gray-500">Ve al Panel de Administración para agregar fotos de marketing.</p>
+                    </div>
+                )}
+            </div>
         </section>
     );
 };

@@ -412,30 +412,38 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
                             />
                         </div>
                         <div>
-                            <label htmlFor="marketing-image-new" className="block text-sm font-medium text-gray-700 mb-1">
-                                Imagen
+                            <label htmlFor="marketing-image-new" className="block text-sm font-medium text-gray-700 mb-2">
+                                Imagen <span className="text-red-500">*</span>
                             </label>
-                            <input
-                                id="marketing-image-new"
-                                type="file"
-                                accept="image/*"
-                                className="sr-only"
-                                onChange={async (e) => {
-                                    const file = e.target.files?.[0] || null;
-                                    if (file) {
-                                        const imageUrl = await handleMarketingImageUpload(file);
-                                        if (imageUrl) {
-                                            await handleCreateMarketingItem(imageUrl);
+                            <div className="border-2 border-dashed border-[#D08A64] rounded-lg p-6 text-center hover:border-[#C49E85] transition-colors">
+                                <input
+                                    id="marketing-image-new"
+                                    type="file"
+                                    accept="image/*"
+                                    className="sr-only"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0] || null;
+                                        if (file) {
+                                            const imageUrl = await handleMarketingImageUpload(file);
+                                            if (imageUrl) {
+                                                await handleCreateMarketingItem(imageUrl);
+                                            }
                                         }
-                                    }
-                                }}
-                            />
-                            <label
-                                htmlFor="marketing-image-new"
-                                className="relative cursor-pointer bg-white rounded-md font-medium text-[#C49E85] hover:text-[#D08A64] focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-[#D08A64] inline-block px-4 py-2 border border-[#D08A64] rounded-lg"
-                            >
-                                <span>Seleccionar Imagen</span>
-                            </label>
+                                    }}
+                                />
+                                <label
+                                    htmlFor="marketing-image-new"
+                                    className="relative cursor-pointer flex flex-col items-center"
+                                >
+                                    <svg className="w-12 h-12 text-[#D08A64] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-[#C49E85] hover:text-[#D08A64]">
+                                        Haz clic para seleccionar una imagen
+                                    </span>
+                                    <span className="text-xs text-gray-500 mt-1">PNG, JPG, GIF hasta 10MB</span>
+                                </label>
+                            </div>
                             {uploading['marketing-new'] && (
                                 <p className="text-sm text-blue-600 mt-2">Subiendo imagen...</p>
                             )}
