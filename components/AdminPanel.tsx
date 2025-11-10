@@ -57,11 +57,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
     const [deleting, setDeleting] = useState<Record<string, boolean>>({});
     const [error, setError] = useState<string | null>(null);
     const [marketingItems, setMarketingItems] = useState<MarketingItem[]>([]);
-    const [newMarketingTitle, setNewMarketingTitle] = useState('');
-    const [newMarketingDescription, setNewMarketingDescription] = useState('');
-    const [editingMarketingId, setEditingMarketingId] = useState<number | null>(null);
-    const [editMarketingTitle, setEditMarketingTitle] = useState('');
-    const [editMarketingDescription, setEditMarketingDescription] = useState('');
 
     useEffect(() => {
         const loadMarketingItems = async () => {
@@ -221,26 +216,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
     };
 
     const handleCreateMarketingItem = async (imageUrl: string) => {
-        if (!newMarketingTitle.trim() || !newMarketingDescription.trim()) {
-            setError('Por favor, completa todos los campos.');
-            return;
-        }
-
         try {
             setUploading(prev => ({ ...prev, 'marketing-create': true }));
             setError(null);
 
-            const newItem = await createMarketingItem(
-                newMarketingTitle.trim(),
-                newMarketingDescription.trim(),
-                imageUrl
-            );
+            const newItem = await createMarketingItem(imageUrl);
 
             if (newItem) {
                 const updatedItems = await getMarketingItems();
                 setMarketingItems(updatedItems);
-                setNewMarketingTitle('');
-                setNewMarketingDescription('');
             }
         } catch (err: any) {
             console.error('Error creating marketing item:', err);
@@ -254,37 +238,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
         }
     };
 
-    const handleUpdateMarketingItem = async (id: number) => {
-        if (!editMarketingTitle.trim() || !editMarketingDescription.trim()) {
-            setError('Por favor, completa todos los campos.');
-            return;
-        }
-
-        try {
-            setUploading(prev => ({ ...prev, [`marketing-update-${id}`]: true }));
-            setError(null);
-
-            await updateMarketingItem(id, {
-                title: editMarketingTitle.trim(),
-                description: editMarketingDescription.trim(),
-            });
-
-            const updatedItems = await getMarketingItems();
-            setMarketingItems(updatedItems);
-            setEditingMarketingId(null);
-            setEditMarketingTitle('');
-            setEditMarketingDescription('');
-        } catch (err: any) {
-            console.error('Error updating marketing item:', err);
-            setError(err.message || 'Error al actualizar el elemento de marketing');
-        } finally {
-            setUploading(prev => {
-                const newState = { ...prev };
-                delete newState[`marketing-update-${id}`];
-                return newState;
-            });
-        }
-    };
 
     const handleDeleteMarketingItem = async (id: number) => {
         if (!confirm('¿Estás seguro de que deseas eliminar este elemento de marketing?')) {
@@ -310,17 +263,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
         }
     };
 
-    const startEditingMarketing = (item: MarketingItem) => {
-        setEditingMarketingId(item.id);
-        setEditMarketingTitle(item.title);
-        setEditMarketingDescription(item.description);
-    };
-
-    const cancelEditingMarketing = () => {
-        setEditingMarketingId(null);
-        setEditMarketingTitle('');
-        setEditMarketingDescription('');
-    };
 
     const handleProfileImageUpload = async (file: File | null) => {
         if (!file) return;
@@ -383,34 +325,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
                 
                 {/* Formulario para nuevo elemento de marketing */}
                 <div className="bg-white/50 p-6 rounded-xl mb-6">
-                    <h4 className="text-xl font-semibold text-gray-700 mb-4">Agregar Nuevo Elemento</h4>
+                    <h4 className="text-xl font-semibold text-gray-700 mb-4">Agregar Nueva Imagen de Marketing</h4>
                     <div className="space-y-4">
-                        <div>
-                            <label htmlFor="marketing-title" className="block text-sm font-medium text-gray-700 mb-1">
-                                Título
-                            </label>
-                            <input
-                                id="marketing-title"
-                                type="text"
-                                value={newMarketingTitle}
-                                onChange={(e) => setNewMarketingTitle(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#D08A64]"
-                                placeholder="Título del elemento"
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="marketing-description" className="block text-sm font-medium text-gray-700 mb-1">
-                                Descripción
-                            </label>
-                            <textarea
-                                id="marketing-description"
-                                value={newMarketingDescription}
-                                onChange={(e) => setNewMarketingDescription(e.target.value)}
-                                rows={3}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#D08A64]"
-                                placeholder="Descripción del elemento"
-                            />
-                        </div>
                         <div>
                             <label htmlFor="marketing-image-new" className="block text-sm font-medium text-gray-700 mb-2">
                                 Imagen <span className="text-red-500">*</span>
@@ -420,13 +336,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
                                     id="marketing-image-new"
                                     type="file"
                                     accept="image/*"
+                                    multiple
                                     className="sr-only"
                                     onChange={async (e) => {
-                                        const file = e.target.files?.[0] || null;
-                                        if (file) {
-                                            const imageUrl = await handleMarketingImageUpload(file);
-                                            if (imageUrl) {
-                                                await handleCreateMarketingItem(imageUrl);
+                                        const files = e.target.files;
+                                        if (files && files.length > 0) {
+                                            for (let i = 0; i < files.length; i++) {
+                                                const file = files[i];
+                                                const imageUrl = await handleMarketingImageUpload(file);
+                                                if (imageUrl) {
+                                                    await handleCreateMarketingItem(imageUrl);
+                                                }
                                             }
                                         }
                                     }}
@@ -439,119 +359,56 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
                                     <span className="text-sm font-medium text-[#C49E85] hover:text-[#D08A64]">
-                                        Haz clic para seleccionar una imagen
+                                        Haz clic para seleccionar una o más imágenes
                                     </span>
-                                    <span className="text-xs text-gray-500 mt-1">PNG, JPG, GIF hasta 10MB</span>
+                                    <span className="text-xs text-gray-500 mt-1">PNG, JPG, GIF hasta 10MB cada una</span>
                                 </label>
                             </div>
                             {uploading['marketing-new'] && (
-                                <p className="text-sm text-blue-600 mt-2">Subiendo imagen...</p>
+                                <p className="text-sm text-blue-600 mt-2">Subiendo imagen(es)...</p>
                             )}
+                        </div>
+                        <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
+                            <p className="font-semibold mb-1">Nota:</p>
+                            <p>Cada imagen se publicará independientemente. Puedes seleccionar múltiples imágenes a la vez.</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Lista de elementos de marketing existentes */}
                 <div className="space-y-4">
-                    <h4 className="text-xl font-semibold text-gray-700 mb-4">Elementos Existentes</h4>
+                    <h4 className="text-xl font-semibold text-gray-700 mb-4">Imágenes de Marketing ({marketingItems.length})</h4>
                     {marketingItems.length === 0 ? (
-                        <p className="text-gray-500 text-center py-4">No hay elementos de marketing aún.</p>
+                        <p className="text-gray-500 text-center py-4">No hay imágenes de marketing aún.</p>
                     ) : (
-                        marketingItems.map((item) => (
-                            <div key={item.id} className="bg-white/50 p-6 rounded-xl border border-gray-200">
-                                {editingMarketingId === item.id ? (
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Título
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={editMarketingTitle}
-                                                onChange={(e) => setEditMarketingTitle(e.target.value)}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#D08A64]"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Descripción
-                                            </label>
-                                            <textarea
-                                                value={editMarketingDescription}
-                                                onChange={(e) => setEditMarketingDescription(e.target.value)}
-                                                rows={3}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#D08A64]"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Imagen
-                                            </label>
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                className="sr-only"
-                                                id={`marketing-image-${item.id}`}
-                                                onChange={(e) => handleMarketingImageUpload(e.target.files?.[0] || null, item.id)}
-                                            />
-                                            <label
-                                                htmlFor={`marketing-image-${item.id}`}
-                                                className="relative cursor-pointer bg-white rounded-md font-medium text-[#C49E85] hover:text-[#D08A64] focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-[#D08A64] inline-block px-4 py-2 border border-[#D08A64] rounded-lg"
-                                            >
-                                                <span>Cambiar Imagen</span>
-                                            </label>
-                                            {uploading[`marketing-${item.id}`] && (
-                                                <p className="text-sm text-blue-600 mt-2">Subiendo imagen...</p>
-                                            )}
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => handleUpdateMarketingItem(item.id)}
-                                                disabled={uploading[`marketing-update-${item.id}`]}
-                                                className="px-4 py-2 bg-[#D08A64] text-white rounded-lg hover:bg-[#C49E85] disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                {uploading[`marketing-update-${item.id}`] ? 'Guardando...' : 'Guardar'}
-                                            </button>
-                                            <button
-                                                onClick={cancelEditingMarketing}
-                                                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
-                                            >
-                                                Cancelar
-                                            </button>
-                                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {marketingItems.map((item) => (
+                                <div key={item.id} className="bg-white/50 p-4 rounded-xl border border-gray-200 relative group">
+                                    <div className="relative aspect-square mb-3">
+                                        <img
+                                            src={item.image_url}
+                                            alt={item.title || 'Imagen de marketing'}
+                                            className="w-full h-full object-cover rounded-lg"
+                                        />
+                                        <button
+                                            onClick={() => handleDeleteMarketingItem(item.id)}
+                                            disabled={deleting[`marketing-${item.id}`]}
+                                            className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                                            aria-label="Eliminar imagen"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
                                     </div>
-                                ) : (
-                                    <div className="flex gap-4">
-                                        <div className="flex-shrink-0">
-                                            <img
-                                                src={item.image_url}
-                                                alt={item.title}
-                                                className="w-32 h-32 object-cover rounded-lg"
-                                            />
+                                    {deleting[`marketing-${item.id}`] && (
+                                        <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center">
+                                            <p className="text-white text-sm">Eliminando...</p>
                                         </div>
-                                        <div className="flex-1">
-                                            <h5 className="text-lg font-bold text-gray-800 mb-1">{item.title}</h5>
-                                            <p className="text-sm text-gray-600 mb-3">{item.description}</p>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => startEditingMarketing(item)}
-                                                    className="px-3 py-1 bg-[#D08A64] text-white text-sm rounded-lg hover:bg-[#C49E85]"
-                                                >
-                                                    Editar
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteMarketingItem(item.id)}
-                                                    disabled={deleting[`marketing-${item.id}`]}
-                                                    className="px-3 py-1 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    {deleting[`marketing-${item.id}`] ? 'Eliminando...' : 'Eliminar'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        ))
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </div>
             </div>

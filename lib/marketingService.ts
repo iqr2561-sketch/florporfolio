@@ -17,11 +17,11 @@ export const getMarketingItems = async (): Promise<MarketingItem[]> => {
   }
 };
 
-// Crear un nuevo elemento de marketing
+// Crear un nuevo elemento de marketing (solo imagen, título y descripción opcionales)
 export const createMarketingItem = async (
-  title: string,
-  description: string,
-  imageUrl: string
+  imageUrl: string,
+  title: string = '',
+  description: string = ''
 ): Promise<MarketingItem | null> => {
   try {
     // Obtener el máximo order_index para agregar al final
@@ -38,8 +38,8 @@ export const createMarketingItem = async (
     const { data, error } = await supabase
       .from('marketing_items')
       .insert({
-        title,
-        description,
+        title: title || '',
+        description: description || '',
         image_url: imageUrl,
         order_index: maxOrder,
       })
