@@ -66,8 +66,6 @@ const App: React.FC = () => {
         return <About />;
       case 'mis-trabajos':
         return <Works projects={projects} />;
-      case 'marketing':
-        return <Marketing />;
       case 'contacto':
         return <Contact />;
       case 'panel':
