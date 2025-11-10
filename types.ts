@@ -2,7 +2,7 @@
 // FIX: Import ReactElement to fix "Cannot find namespace 'JSX'" error.
 import type { ReactElement } from 'react';
 
-export type Section = 'inicio' | 'sobre-mi' | 'mis-trabajos' | 'contacto' | 'panel';
+export type Section = 'inicio' | 'sobre-mi' | 'mis-trabajos' | 'marketing' | 'contacto' | 'panel';
 
 export interface Project {
   id: number;
@@ -33,4 +33,14 @@ export interface UploadedFile {
   name: string;
   type: 'image' | 'video';
   url: string; // Data URL (Base64)
+}
+
+export interface MarketingItem {
+  id: number;
+  title: string;
+  description: string;
+  image_url: string;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
 }
