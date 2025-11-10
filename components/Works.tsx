@@ -44,17 +44,10 @@ const Works: React.FC<WorksProps> = ({ projects }) => {
     }, []);
     
     const categories = ['Todos', ...Array.from(new Set(projects.map(p => p.category)))];
-    if (marketingItems.length > 0 && !categories.includes('Marketing')) {
-        categories.push('Marketing');
-    }
     
     const filteredProjects = filter === 'Todos' 
         ? projects 
-        : filter === 'Marketing'
-        ? []
         : projects.filter(p => p.category === filter);
-    
-    const showMarketing = filter === 'Todos' || filter === 'Marketing';
 
     return (
         <section id="mis-trabajos" className="min-h-screen animate-fade-in">
@@ -76,10 +69,19 @@ const Works: React.FC<WorksProps> = ({ projects }) => {
                 {filteredProjects.map(project => (
                     <ProjectCard key={project.id} project={project} />
                 ))}
-                {showMarketing && marketingItems.map(item => (
-                    <MarketingCard key={item.id} item={item} />
-                ))}
             </div>
+
+            {/* Sección de Marketing */}
+            {marketingItems.length > 0 && (
+                <div className="mt-20">
+                    <h3 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8 text-center">Marketing</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {marketingItems.map(item => (
+                            <MarketingCard key={item.id} item={item} />
+                        ))}
+                    </div>
+                </div>
+            )}
         </section>
     );
 };
