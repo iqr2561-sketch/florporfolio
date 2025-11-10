@@ -1,19 +1,64 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ProjectCard from './ProjectCard.tsx';
-import type { Project } from '../types.ts';
-
+import type { Project, MarketingItem } from '../types.ts';
+import { getMarketingItems } from '../lib/marketingService.ts';
 
 interface WorksProps {
     projects: Project[];
 }
 
+const MarketingCard: React.FC<{ item: MarketingItem }> = ({ item }) => {
+    return (
+        <div className="bg-white/70 rounded-2xl shadow-lg overflow-hidden group transform transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+            <div className="relative">
+                <img 
+                    src={item.image_url} 
+                    alt={item.title}
+                    className="w-full h-56 object-cover transition-transform duration-500 group-hover:scale-110" 
+                />
+            </div>
+            <div className="p-6">
+                <p className="text-sm font-semibold text-[#C49E85] mb-1">Marketing</p>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">{item.title}</h3>
+                <p className="text-gray-600 text-sm mb-4">{item.description}</p>
+            </div>
+        </div>
+    );
+};
+
 const Works: React.FC<WorksProps> = ({ projects }) => {
     const [filter, setFilter] = useState('Todos');
+    const [marketingItems, setMarketingItems] = useState<MarketingItem[]>([]);
+    const [loadingMarketing, setLoadingMarketing] = useState(true);
+    
+    useEffect(() => {
+        const loadMarketingItems = async () => {
+            try {
+                setLoadingMarketing(true);
+                const items = await getMarketingItems();
+                setMarketingItems(items);
+            } catch (error) {
+                console.error('Error loading marketing items:', error);
+            } finally {
+                setLoadingMarketing(false);
+            }
+        };
+        loadMarketingItems();
+    }, []);
     
     const categories = ['Todos', ...Array.from(new Set(projects.map(p => p.category)))];
+    if (marketingItems.length > 0 && !categories.includes('Marketing')) {
+        categories.push('Marketing');
+    }
     
-    const filteredProjects = filter === 'Todos' ? projects : projects.filter(p => p.category === filter);
+    const filteredProjects = filter === 'Todos' 
+        ? projects 
+        : filter === 'Marketing'
+        ? []
+        : projects.filter(p => p.category === filter);
+    
+    const showMarketing = filter === 'Todos' || filter === 'Marketing';
 
     return (
         <section id="mis-trabajos" className="min-h-screen animate-fade-in">
@@ -34,6 +79,9 @@ const Works: React.FC<WorksProps> = ({ projects }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {filteredProjects.map(project => (
                     <ProjectCard key={project.id} project={project} />
+                ))}
+                {showMarketing && marketingItems.map(item => (
+                    <MarketingCard key={item.id} item={item} />
                 ))}
             </div>
         </section>
