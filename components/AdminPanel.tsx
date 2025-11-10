@@ -261,7 +261,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
         }
 
         try {
-            setUploading(prev => ({ ...prev, `marketing-update-${id}`: true }));
+            setUploading(prev => ({ ...prev, [`marketing-update-${id}`]: true }));
             setError(null);
 
             await updateMarketingItem(id, {

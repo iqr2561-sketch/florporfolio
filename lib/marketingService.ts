@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { MarketingItem } from '../types';
+import type { MarketingItem } from '../types.ts';
 
 // Obtener todos los elementos de marketing
 export const getMarketingItems = async (): Promise<MarketingItem[]> => {
