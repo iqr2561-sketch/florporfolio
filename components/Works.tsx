@@ -48,10 +48,12 @@ const Works: React.FC<WorksProps> = ({ projects }) => {
         loadMarketingItems();
     }, []);
     
-    const categories = ['Todos', ...Array.from(new Set(projects.map(p => p.category)))];
+    const categories = ['Todos', 'Marketing', ...Array.from(new Set(projects.map(p => p.category)))];
     
     const filteredProjects = filter === 'Todos' 
         ? projects 
+        : filter === 'Marketing'
+        ? [] // Marketing se muestra en su propia sección
         : projects.filter(p => p.category === filter);
 
     return (
@@ -70,15 +72,45 @@ const Works: React.FC<WorksProps> = ({ projects }) => {
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredProjects.map(project => (
-                    <ProjectCard key={project.id} project={project} />
-                ))}
-            </div>
+            {/* Mostrar proyectos o marketing según el filtro */}
+            {filter === 'Marketing' ? (
+                /* Sección de Marketing cuando se selecciona el filtro */
+                <div className="mt-8 mb-12">
+                    {loadingMarketing ? (
+                        <div className="text-center py-12 bg-white/50 rounded-2xl">
+                            <p className="text-gray-600">Cargando imágenes de marketing...</p>
+                        </div>
+                    ) : marketingError ? (
+                        <div className="text-center py-12 bg-red-50 rounded-2xl border border-red-200">
+                            <p className="text-red-600 mb-2 font-semibold">Error al cargar marketing</p>
+                            <p className="text-sm text-red-500">{marketingError}</p>
+                            <p className="text-xs text-gray-500 mt-4">Verifica que la tabla 'marketing_items' exista en Supabase</p>
+                        </div>
+                    ) : marketingItems.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {marketingItems.map(item => (
+                                <MarketingCard key={item.id} item={item} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-12 bg-white/50 rounded-2xl">
+                            <p className="text-gray-600 mb-4">No hay imágenes de marketing aún.</p>
+                            <p className="text-sm text-gray-500">Ve al Panel de Administración para agregar fotos de marketing.</p>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {filteredProjects.map(project => (
+                        <ProjectCard key={project.id} project={project} />
+                    ))}
+                </div>
+            )}
 
-            {/* Sección de Marketing - Siempre visible */}
-            <div className="mt-20 mb-12">
-                <h3 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8 text-center">Marketing</h3>
+            {/* Sección de Marketing - Siempre visible cuando no está seleccionado el filtro Marketing */}
+            {filter !== 'Marketing' && (
+                <div className="mt-20 mb-12">
+                    <h3 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8 text-center">Marketing</h3>
                 {loadingMarketing ? (
                     <div className="text-center py-12 bg-white/50 rounded-2xl">
                         <p className="text-gray-600">Cargando imágenes de marketing...</p>
@@ -101,7 +133,8 @@ const Works: React.FC<WorksProps> = ({ projects }) => {
                         <p className="text-sm text-gray-500">Ve al Panel de Administración para agregar fotos de marketing.</p>
                     </div>
                 )}
-            </div>
+                </div>
+            )}
         </section>
     );
 };
