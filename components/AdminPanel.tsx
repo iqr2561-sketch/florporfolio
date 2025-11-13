@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { UploadedFile, Project, MarketingItem } from '../types.ts';
-import { uploadFile, deleteFile, uploadProfileImage } from '../lib/projectsService.ts';
+import { uploadFile, deleteFile, uploadProfileImage, deleteProject } from '../lib/projectsService.ts';
 import { 
     getMarketingItems, 
     createMarketingItem, 
@@ -155,6 +155,39 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
             setDeleting(prev => {
                 const newState = { ...prev };
                 delete newState[fileId];
+                return newState;
+            });
+        }
+    };
+
+    const handleDeleteProject = async (projectId: number, projectTitle: string) => {
+        if (!window.confirm(`¿Estás seguro de que quieres eliminar el proyecto "${projectTitle}"?\n\nEsta acción eliminará el proyecto y TODOS sus archivos multimedia. Esta acción NO se puede deshacer.`)) {
+            return;
+        }
+
+        const deleteKey = `project-${projectId}`;
+        setDeleting(prev => ({ ...prev, [deleteKey]: true }));
+        setError(null);
+
+        try {
+            await deleteProject(projectId);
+
+            // Actualizar el estado local
+            setProjects(prevProjects => prevProjects.filter(p => p.id !== projectId));
+
+            // Refrescar desde Supabase
+            if (onRefresh) {
+                await onRefresh();
+            }
+
+            alert(`Proyecto "${projectTitle}" eliminado exitosamente`);
+        } catch (err) {
+            console.error('Error deleting project:', err);
+            setError(`Error al eliminar el proyecto: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+        } finally {
+            setDeleting(prev => {
+                const newState = { ...prev };
+                delete newState[deleteKey];
                 return newState;
             });
         }
@@ -431,7 +464,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
             <div className="space-y-12">
                 {projects.map(project => (
                     <div key={project.id} className="bg-white/60 backdrop-blur-sm p-6 rounded-2xl shadow-lg">
-                        <h3 className="text-2xl font-bold text-gray-700 mb-6">{project.title}</h3>
+                        <div className="flex justify-between items-start mb-6">
+                            <h3 className="text-2xl font-bold text-gray-700">{project.title}</h3>
+                            <button
+                                onClick={() => handleDeleteProject(project.id, project.title)}
+                                disabled={deleting[`project-${project.id}`]}
+                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                aria-label={`Eliminar proyecto ${project.title}`}
+                            >
+                                <TrashIcon className="w-5 h-5" />
+                                <span>Eliminar Proyecto</span>
+                            </button>
+                        </div>
+                        {deleting[`project-${project.id}`] && (
+                            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <p className="text-yellow-800 text-sm">Eliminando proyecto y sus archivos...</p>
+                            </div>
+                        )}
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>

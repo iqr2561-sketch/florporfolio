@@ -300,3 +300,66 @@ export const deleteFile = async (fileId: string, filePath?: string): Promise<boo
   }
 };
 
+// Eliminar un proyecto completo (incluyendo todos sus archivos)
+export const deleteProject = async (projectId: number): Promise<boolean> => {
+  try {
+    // Obtener todos los archivos multimedia del proyecto
+    const { data: mediaFiles, error: mediaError } = await supabase
+      .from('project_media')
+      .select('file_path')
+      .eq('project_id', projectId);
+
+    if (mediaError) throw mediaError;
+
+    // Eliminar todos los archivos del storage
+    if (mediaFiles && mediaFiles.length > 0) {
+      const filePaths = mediaFiles.map(m => m.file_path).filter(Boolean);
+      if (filePaths.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from(BUCKET_NAME)
+          .remove(filePaths);
+
+        if (storageError) {
+          console.warn('Error deleting files from storage (continuing):', storageError);
+          // Continuamos aunque falle el storage
+        }
+      }
+    }
+
+    // Eliminar el proyecto de la base de datos
+    // Los archivos multimedia se eliminarán automáticamente por CASCADE
+    const { error: projectError } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', projectId);
+
+    if (projectError) throw projectError;
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    throw error;
+  }
+};
+
+// Eliminar proyecto por título
+export const deleteProjectByTitle = async (title: string): Promise<boolean> => {
+  try {
+    // Buscar el proyecto por título
+    const { data: project, error: findError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('title', title)
+      .single();
+
+    if (findError) throw findError;
+    if (!project) throw new Error(`Proyecto "${title}" no encontrado`);
+
+    // Eliminar el proyecto usando la función deleteProject
+    return await deleteProject(project.id);
+  } catch (error) {
+    console.error('Error deleting project by title:', error);
+    throw error;
+  }
+};
+
