@@ -18,7 +18,6 @@ interface SidebarProps {
 const navItems: { section: Section; label: string }[] = [
     { section: 'sobre-mi', label: 'Sobre mí' },
     { section: 'mis-trabajos', label: 'Mis trabajos' },
-    { section: 'marketing', label: 'Marketing' },
     { section: 'contacto', label: 'Contacto' },
     { section: 'panel', label: 'Panel' },
 ];
