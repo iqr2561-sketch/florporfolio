@@ -101,13 +101,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
                 
                 if (uploadedFile) {
                     // Actualizar el estado local
-                    setProjects(prevProjects => prevProjects.map(p => {
-                        if (p.id === projectId) {
+                setProjects(prevProjects => prevProjects.map(p => {
+                    if (p.id === projectId) {
                             const newMedia = p.media ? [...p.media, uploadedFile] : [uploadedFile];
-                            return { ...p, media: newMedia };
-                        }
-                        return p;
-                    }));
+                        return { ...p, media: newMedia };
+                    }
+                    return p;
+                }));
 
                     // Refrescar desde Supabase para asegurar sincronización
                     if (onRefresh) {
@@ -400,7 +400,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
             });
         }
     };
-
+    
     return (
         <section id="panel" className="min-h-screen animate-fade-in">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-12 text-center">Panel de Administración</h2>
@@ -678,15 +678,207 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
                                 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        URL de Miniatura <span className="text-red-500">*</span>
+                                        Imagen Miniatura <span className="text-red-500">*</span>
                                     </label>
-                                    <input
-                                        type="text"
-                                        value={editFormData.thumbnailUrl || ''}
-                                        onChange={(e) => setEditFormData({ ...editFormData, thumbnailUrl: e.target.value })}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D08A64] focus:border-transparent"
-                                        required
-                                    />
+                                    <div className="space-y-3">
+                                        {/* Vista previa de la miniatura actual */}
+                                        {editFormData.thumbnailUrl && (
+                                            <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-gray-300">
+                                                <img 
+                                                    src={editFormData.thumbnailUrl} 
+                                                    alt="Miniatura actual"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                        )}
+                                        {/* Campo para subir nueva miniatura */}
+                                        <div className="border-2 border-dashed border-[#D08A64] rounded-lg p-4 text-center">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                id={`thumbnail-upload-${project.id}`}
+                                                className="sr-only"
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        const uploadKey = `thumbnail-${project.id}`;
+                                                        setUploading(prev => ({ ...prev, [uploadKey]: true }));
+                                                        try {
+                                                            const uploadedFile = await uploadFile(file, project.id);
+                                                            if (uploadedFile) {
+                                                                setEditFormData({ ...editFormData, thumbnailUrl: uploadedFile.url });
+                                                                // Refrescar proyectos para obtener el nuevo archivo
+                                                                if (onRefresh) {
+                                                                    await onRefresh();
+                                                                }
+                                                            }
+                                                        } catch (err) {
+                                                            console.error('Error uploading thumbnail:', err);
+                                                            setError(`Error al subir la miniatura: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+                                                        } finally {
+                                                            setUploading(prev => {
+                                                                const newState = { ...prev };
+                                                                delete newState[uploadKey];
+                                                                return newState;
+                                                            });
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                            <label
+                                                htmlFor={`thumbnail-upload-${project.id}`}
+                                                className="cursor-pointer flex flex-col items-center"
+                                            >
+                                                <UploadIcon className="w-8 h-8 text-[#D08A64] mb-2" />
+                                                <span className="text-sm font-medium text-[#C49E85] hover:text-[#D08A64]">
+                                                    {editFormData.thumbnailUrl ? 'Cambiar Miniatura' : 'Subir Miniatura'}
+                                                </span>
+                                                <span className="text-xs text-gray-500 mt-1">PNG, JPG, GIF hasta 10MB</span>
+                                            </label>
+                                        </div>
+                                        {uploading[`thumbnail-${project.id}`] && (
+                                            <p className="text-sm text-blue-600">Subiendo imagen...</p>
+                                        )}
+                                        {/* Campo de texto alternativo para URL */}
+                                        <div className="mt-2">
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                                                O ingresa una URL directamente:
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editFormData.thumbnailUrl || ''}
+                                                onChange={(e) => setEditFormData({ ...editFormData, thumbnailUrl: e.target.value })}
+                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D08A64] focus:border-transparent"
+                                                placeholder="https://..."
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Imágenes y Fotografías del Proyecto
+                                    </label>
+                                    <div className="space-y-4">
+                                        {/* Mostrar imágenes actuales */}
+                                        {project.media && project.media.filter(m => m.type === 'image').length > 0 && (
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-600 mb-2">Imágenes actuales:</p>
+                                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                                    {project.media.filter(m => m.type === 'image').map(file => (
+                                                        <div key={file.id} className="relative group bg-white/70 rounded-lg overflow-hidden border-2 border-gray-200">
+                                                            <img 
+                                                                src={file.url} 
+                                                                alt={file.name}
+                                                                className="w-full h-32 object-cover"
+                                                            />
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (window.confirm('¿Eliminar esta imagen?')) {
+                                                                        await handleDelete(project.id, file.id, file.url);
+                                                                    }
+                                                                }}
+                                                                disabled={deleting[file.id]}
+                                                                className="absolute top-1 right-1 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                aria-label="Eliminar imagen"
+                                                            >
+                                                                <TrashIcon className="w-3 h-3" />
+                                                            </button>
+                                                            {deleting[file.id] && (
+                                                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                                    <p className="text-white text-xs">Eliminando...</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {/* Área para subir nuevas imágenes */}
+                                        <div className="border-2 border-dashed border-[#D08A64] rounded-lg p-4">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                id={`images-upload-${project.id}`}
+                                                className="sr-only"
+                                                onChange={(e) => handleFileUpload(e.target.files, 'image', project.id)}
+                                            />
+                                            <label
+                                                htmlFor={`images-upload-${project.id}`}
+                                                className="cursor-pointer flex flex-col items-center"
+                                            >
+                                                <UploadIcon className="w-8 h-8 text-[#D08A64] mb-2" />
+                                                <span className="text-sm font-medium text-[#C49E85] hover:text-[#D08A64]">
+                                                    Agregar más imágenes
+                                                </span>
+                                                <span className="text-xs text-gray-500 mt-1">PNG, JPG, GIF hasta 10MB cada una</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Videos del Proyecto
+                                    </label>
+                                    <div className="space-y-4">
+                                        {/* Mostrar videos actuales */}
+                                        {project.media && project.media.filter(m => m.type === 'video').length > 0 && (
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-600 mb-2">Videos actuales:</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    {project.media.filter(m => m.type === 'video').map(file => (
+                                                        <div key={file.id} className="relative group bg-white/70 rounded-lg overflow-hidden border-2 border-gray-200">
+                                                            <video 
+                                                                src={file.url}
+                                                                controls
+                                                                className="w-full h-32 object-cover"
+                                                            />
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (window.confirm('¿Eliminar este video?')) {
+                                                                        await handleDelete(project.id, file.id, file.url);
+                                                                    }
+                                                                }}
+                                                                disabled={deleting[file.id]}
+                                                                className="absolute top-1 right-1 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                aria-label="Eliminar video"
+                                                            >
+                                                                <TrashIcon className="w-3 h-3" />
+                                                            </button>
+                                                            {deleting[file.id] && (
+                                                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                                    <p className="text-white text-xs">Eliminando...</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {/* Área para subir nuevos videos */}
+                                        <div className="border-2 border-dashed border-[#D08A64] rounded-lg p-4">
+                                            <input
+                                                type="file"
+                                                accept="video/*"
+                                                multiple
+                                                id={`videos-upload-${project.id}`}
+                                                className="sr-only"
+                                                onChange={(e) => handleFileUpload(e.target.files, 'video', project.id)}
+                                            />
+                                            <label
+                                                htmlFor={`videos-upload-${project.id}`}
+                                                className="cursor-pointer flex flex-col items-center"
+                                            >
+                                                <UploadIcon className="w-8 h-8 text-[#D08A64] mb-2" />
+                                                <span className="text-sm font-medium text-[#C49E85] hover:text-[#D08A64]">
+                                                    Agregar más videos
+                                                </span>
+                                                <span className="text-xs text-gray-500 mt-1">MP4, WEBM hasta 50MB cada uno</span>
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <div>
