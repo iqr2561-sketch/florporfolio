@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar.tsx';
 import Home from './components/Home.tsx';
 import About from './components/About.tsx';
 import Works from './components/Works.tsx';
+import Marketing from './components/Marketing.tsx';
 import Contact from './components/Contact.tsx';
 import AdminPanel from './components/AdminPanel.tsx';
 import InteractiveBackground from './components/InteractiveBackground.tsx';
@@ -66,6 +67,8 @@ const App: React.FC = () => {
         return <About />;
       case 'mis-trabajos':
         return <Works projects={projects} />;
+      case 'marketing':
+        return <Marketing />;
       case 'contacto':
         return <Contact />;
       case 'panel':
