@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { UploadedFile, Project, MarketingItem } from '../types.ts';
-import { uploadFile, deleteFile, uploadProfileImage, deleteProject } from '../lib/projectsService.ts';
+import { uploadFile, deleteFile, uploadProfileImage, deleteProject, updateProject } from '../lib/projectsService.ts';
 import { 
     getMarketingItems, 
     createMarketingItem, 
@@ -57,6 +57,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
     const [deleting, setDeleting] = useState<Record<string, boolean>>({});
     const [error, setError] = useState<string | null>(null);
     const [marketingItems, setMarketingItems] = useState<MarketingItem[]>([]);
+    const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
+    const [editFormData, setEditFormData] = useState<Partial<Project>>({});
+    const [saving, setSaving] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         const loadMarketingItems = async () => {
@@ -191,6 +194,78 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
                 return newState;
             });
         }
+    };
+
+    const handleStartEdit = (project: Project) => {
+        setEditingProjectId(project.id);
+        setEditFormData({
+            title: project.title,
+            category: project.category,
+            description: project.description,
+            tools: [...project.tools],
+            thumbnailUrl: project.thumbnailUrl,
+            externalUrl: project.externalUrl || '',
+        });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingProjectId(null);
+        setEditFormData({});
+    };
+
+    const handleSaveEdit = async (projectId: number) => {
+        const saveKey = `project-${projectId}`;
+        setSaving(prev => ({ ...prev, [saveKey]: true }));
+        setError(null);
+
+        try {
+            const updatedProject = await updateProject({
+                id: projectId,
+                ...editFormData,
+            });
+
+            if (updatedProject) {
+                // Actualizar el estado local
+                setProjects(prevProjects => prevProjects.map(p => 
+                    p.id === projectId ? updatedProject : p
+                ));
+
+                // Refrescar desde Supabase
+                if (onRefresh) {
+                    await onRefresh();
+                }
+
+                setEditingProjectId(null);
+                setEditFormData({});
+                alert('Proyecto actualizado exitosamente');
+            }
+        } catch (err) {
+            console.error('Error updating project:', err);
+            setError(`Error al actualizar el proyecto: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+        } finally {
+            setSaving(prev => {
+                const newState = { ...prev };
+                delete newState[saveKey];
+                return newState;
+            });
+        }
+    };
+
+    const handleToolChange = (index: number, value: string) => {
+        const newTools = [...(editFormData.tools || [])];
+        newTools[index] = value;
+        setEditFormData({ ...editFormData, tools: newTools });
+    };
+
+    const handleAddTool = () => {
+        const newTools = [...(editFormData.tools || []), ''];
+        setEditFormData({ ...editFormData, tools: newTools });
+    };
+
+    const handleRemoveTool = (index: number) => {
+        const newTools = [...(editFormData.tools || [])];
+        newTools.splice(index, 1);
+        setEditFormData({ ...editFormData, tools: newTools });
     };
 
     const UploadArea: React.FC<{ type: 'image' | 'video', projectId: number}> = ({ type, projectId }) => (
@@ -465,20 +540,167 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, setProjects, onRefres
                 {projects.map(project => (
                     <div key={project.id} className="bg-white/60 backdrop-blur-sm p-6 rounded-2xl shadow-lg">
                         <div className="flex justify-between items-start mb-6">
-                            <h3 className="text-2xl font-bold text-gray-700">{project.title}</h3>
-                            <button
-                                onClick={() => handleDeleteProject(project.id, project.title)}
-                                disabled={deleting[`project-${project.id}`]}
-                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                aria-label={`Eliminar proyecto ${project.title}`}
-                            >
-                                <TrashIcon className="w-5 h-5" />
-                                <span>Eliminar Proyecto</span>
-                            </button>
+                            <h3 className="text-2xl font-bold text-gray-700">
+                                {editingProjectId === project.id ? 'Editando Proyecto' : project.title}
+                            </h3>
+                            <div className="flex gap-2">
+                                {editingProjectId === project.id ? (
+                                    <>
+                                        <button
+                                            onClick={() => handleSaveEdit(project.id)}
+                                            disabled={saving[`project-${project.id}`]}
+                                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            <span>Guardar</span>
+                                        </button>
+                                        <button
+                                            onClick={handleCancelEdit}
+                                            disabled={saving[`project-${project.id}`]}
+                                            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <XIcon className="w-5 h-5" />
+                                            <span>Cancelar</span>
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={() => handleStartEdit(project)}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+                                            aria-label={`Editar proyecto ${project.title}`}
+                                        >
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                            <span>Editar</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteProject(project.id, project.title)}
+                                            disabled={deleting[`project-${project.id}`]}
+                                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            aria-label={`Eliminar proyecto ${project.title}`}
+                                        >
+                                            <TrashIcon className="w-5 h-5" />
+                                            <span>Eliminar</span>
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
                         {deleting[`project-${project.id}`] && (
                             <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                                 <p className="text-yellow-800 text-sm">Eliminando proyecto y sus archivos...</p>
+                            </div>
+                        )}
+                        {saving[`project-${project.id}`] && (
+                            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <p className="text-blue-800 text-sm">Guardando cambios...</p>
+                            </div>
+                        )}
+                        
+                        {/* Formulario de edición */}
+                        {editingProjectId === project.id && (
+                            <div className="bg-white/50 p-6 rounded-xl mb-6 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Título <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.title || ''}
+                                        onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D08A64] focus:border-transparent"
+                                        required
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Categoría <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.category || ''}
+                                        onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D08A64] focus:border-transparent"
+                                        required
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Descripción <span className="text-red-500">*</span>
+                                    </label>
+                                    <textarea
+                                        value={editFormData.description || ''}
+                                        onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                                        rows={4}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D08A64] focus:border-transparent"
+                                        required
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Herramientas
+                                    </label>
+                                    <div className="space-y-2">
+                                        {(editFormData.tools || []).map((tool, index) => (
+                                            <div key={index} className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={tool}
+                                                    onChange={(e) => handleToolChange(index, e.target.value)}
+                                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D08A64] focus:border-transparent"
+                                                    placeholder="Nombre de la herramienta"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveTool(index)}
+                                                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors"
+                                                >
+                                                    <TrashIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={handleAddTool}
+                                            className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg transition-colors text-sm"
+                                        >
+                                            + Agregar Herramienta
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        URL de Miniatura <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.thumbnailUrl || ''}
+                                        onChange={(e) => setEditFormData({ ...editFormData, thumbnailUrl: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D08A64] focus:border-transparent"
+                                        required
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        URL Externa (opcional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.externalUrl || ''}
+                                        onChange={(e) => setEditFormData({ ...editFormData, externalUrl: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D08A64] focus:border-transparent"
+                                        placeholder="https://..."
+                                    />
+                                </div>
                             </div>
                         )}
                         
